@@ -243,7 +243,7 @@
 
 <script>
 /* ===== 热更新引导（支持 OTA 更新应用，无需重装） ===== */
-var GRASS_VERSION = "2.01";
+var GRASS_VERSION = "2.02";
 var GRASS_UPDATE_URL = "https://debaoguo.github.io/grass-privacy/grass/update.json"; // 公网热更新
 function compareVersion(a, b) {
   var x = String(a).split("."), y = String(b).split(".");
@@ -253,10 +253,19 @@ function compareVersion(a, b) {
   }
   return 0;
 }
+function effectiveVersion() {
+  var v = GRASS_VERSION;
+  try {
+    var s = localStorage.getItem("grass_applied_ver");
+    if (s && compareVersion(s, v) > 0) v = s;
+  } catch (e) {}
+  return v;
+}
 (function () {
   try {
     var o = JSON.parse(localStorage.getItem("grass_ota") || "null");
-    if (o && o.html && o.version && compareVersion(o.version, GRASS_VERSION) > 0) {
+    if (o && o.html && o.version && compareVersion(o.version, effectiveVersion()) > 0) {
+      try { localStorage.setItem("grass_applied_ver", String(o.version)); } catch (e) {}
       document.open(); document.write(o.html); document.close();
     }
   } catch (e) {}
@@ -990,7 +999,7 @@ function compareVersion(a, b) {
   /* ================= 关于 / 隐私政策 ================= */
   var aboutOverlay = document.getElementById("aboutoverlay");
   var aboutBtn = document.getElementById("aboutbtn");
-  document.getElementById("aboutver").textContent = GRASS_VERSION;
+  document.getElementById("aboutver").textContent = effectiveVersion();
   aboutBtn.addEventListener("click", function () { aboutOverlay.classList.add("show"); });
   document.getElementById("aboutclose").addEventListener("click", function () { aboutOverlay.classList.remove("show"); });
 
@@ -1003,9 +1012,12 @@ function compareVersion(a, b) {
     if (!GRASS_UPDATE_URL) return;
     try {
       fetch(GRASS_UPDATE_URL, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (m) {
-        if (m && m.version && m.url && compareVersion(String(m.version), GRASS_VERSION) > 0) {
+        if (m && m.version && m.url && compareVersion(String(m.version), effectiveVersion()) > 0) {
           return fetch(m.url, { cache: "no-store" }).then(function (r2) { return r2.text(); }).then(function (html) {
-            try { localStorage.setItem(OTA_KEY, JSON.stringify({ version: m.version, html: html })); } catch (e) {}
+            try {
+              localStorage.setItem(OTA_KEY, JSON.stringify({ version: m.version, html: html }));
+              localStorage.setItem("grass_applied_ver", String(m.version));
+            } catch (e) {}
             applyOTA(html);
           });
         }
