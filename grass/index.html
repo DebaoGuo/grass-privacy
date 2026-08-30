@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="format-detection" content="telephone=no" />
+<title>Grass · 我的小草</title>
+<meta name="description" content="领养一棵属于你的小草：触摸它、用洒水壶浇灌它、看它慢慢长大。" />
+<meta name="theme-color" content="#FFFFFF" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Grass" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<style>
+  :root{
+    --blue:#007AFF;
+    --ink:#1D1D1F;
+    --sub:#8E8E93;
+    --track:#E9E9ED;
+    --card:rgba(242,242,247,.88);
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","PingFang SC","Helvetica Neue",Helvetica,Arial,sans-serif;
+    background:#F2F2F7;color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    -webkit-touch-callout:none;-webkit-user-select:none;user-select:none;
+    overflow:hidden;overscroll-behavior:none;
+    touch-action:manipulation;
+  }
+  #phone{
+    position:relative;max-width:430px;height:100%;height:100dvh;margin:0 auto;
+    background:#FFFFFF;
+    display:flex;flex-direction:column;
+    box-shadow:0 0 80px rgba(0,0,0,.10);
+    overflow:hidden;
+  }
+  /* ---------- 标题 ---------- */
+  header{
+    padding:12px 24px 4px;
+    padding-top:calc(constant(safe-area-inset-top) + 12px);
+    padding-top:calc(env(safe-area-inset-top) + 12px);
+    flex:none;
+  }
+  h1{font-size:34px;font-weight:800;letter-spacing:-.6px;line-height:1.1;display:inline-block;cursor:pointer;color:#111113}
+  #subtitle{color:var(--sub);font-size:15px;margin-top:3px;letter-spacing:.2px}
+  .header-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  #aboutbtn{border:none;background:none;color:var(--blue);font-size:15px;font-weight:600;cursor:pointer;padding:6px 2px;flex:none}
+  .about-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f2;font-size:15px}
+  .about-row span:first-child{color:var(--sub)}
+  .about-link{display:block;text-align:center;color:var(--blue);font-size:15px;font-weight:600;padding:14px 0;text-decoration:none}
+  /* ---------- 画布 ---------- */
+  main{flex:1;position:relative;min-height:0}
+  #scene{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+  #scene:active{cursor:grabbing}
+  #install{
+    position:absolute;left:14px;right:14px;bottom:14px;z-index:6;
+    background:rgba(255,255,255,.97);border:1px solid rgba(0,0,0,.06);
+    border-radius:18px;padding:12px 14px;
+    display:none;align-items:center;gap:10px;
+    box-shadow:0 10px 30px rgba(0,0,0,.12);
+    font-size:13px;line-height:1.45;
+  }
+  #install.show{display:flex;animation:rise .45s cubic-bezier(.2,.9,.3,1.2)}
+  #install b{color:var(--blue)}
+  #install .x{margin-left:auto;color:var(--sub);font-size:18px;padding:4px 6px;cursor:pointer}
+  @keyframes rise{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+  /* ---------- 底部信息卡 ---------- */
+  footer{
+    padding:10px 16px 8px;
+    padding-bottom:calc(constant(safe-area-inset-bottom) + 8px);
+    padding-bottom:calc(env(safe-area-inset-bottom) + 8px);
+    flex:none;
+  }
+  #controlcard{
+    background:var(--card);
+    -webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);
+    border-radius:26px;padding:16px;
+    display:flex;align-items:center;gap:14px;
+    border:1px solid rgba(255,255,255,.6);
+    box-shadow:0 8px 32px rgba(0,0,0,.08),inset 0 1px 0 rgba(255,255,255,.5);
+  }
+  .mid{flex:1;min-width:0}
+  .statrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .statlabel{font-size:13px;color:var(--sub);font-weight:500}
+  .statval{font-size:13px;font-weight:600}
+  #healthbar{height:12px;border-radius:999px;background:var(--track);overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.06)}
+  #healthfill{
+    height:100%;width:100%;border-radius:999px;
+    background:linear-gradient(90deg,#4CAF50,#8BC34A);
+    transition:width .5s cubic-bezier(.2,.8,.3,1),background .8s ease;
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.4);
+  }
+  .chiprow{display:flex;align-items:center;gap:8px;margin-top:10px;min-width:0}
+  .chip{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:rgba(0,122,255,.12);color:var(--blue);white-space:nowrap}
+  .chip.warn{background:rgba(255,149,0,.16);color:#E8880C}
+  .chip.bad{background:rgba(255,59,48,.14);color:#FF3B30}
+  .chip.good{background:rgba(52,199,89,.16);color:#34C759}
+  #lastwater{font-size:12px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .side{flex:none;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .kv{text-align:right}
+  .kv .k{font-size:11px;color:var(--sub)}
+  .kv .v{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  /* ---------- 启动画面 ---------- */
+  #splash{
+    position:fixed;inset:0;z-index:100;background:#FFFFFF;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transition:opacity .55s ease;
+  }
+  #splash.hide{opacity:0;pointer-events:none}
+  .splash-logo{width:112px;height:112px;border-radius:26px;box-shadow:0 16px 40px rgba(0,0,0,.12);animation:splashIn .6s cubic-bezier(.2,.9,.3,1.2)}
+  @keyframes splashIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+  #splash-name{font-size:30px;font-weight:800;margin-top:20px;letter-spacing:-.3px;animation:fadeUp .6s .1s both}
+  #splash-brand{font-size:13px;color:var(--sub);margin-top:6px;letter-spacing:3px;animation:fadeUp .6s .2s both}
+  @keyframes fadeUp{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+  /* ---------- 弹层 ---------- */
+  .overlay{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+  .overlay.show{display:flex}
+  .sheet{width:88%;max-width:340px;background:#fff;border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:rise .3s cubic-bezier(.2,.9,.3,1.2)}
+  .sheet h2{font-size:17px;font-weight:700;text-align:center;margin-bottom:16px}
+  .sheet input{width:100%;border:none;background:#F2F2F7;border-radius:12px;padding:12px 14px;font-size:16px;outline:none;text-align:center;color:var(--ink)}
+  .sheet-actions{display:flex;gap:10px;margin-top:16px}
+  .sheet-actions button{flex:1;border:none;border-radius:12px;padding:12px;font-size:16px;font-weight:600;cursor:pointer}
+  .btn-cancel{background:#F2F2F7;color:var(--ink)}
+  .btn-primary{background:var(--blue);color:#fff}
+  .opt-label{font-size:13px;color:var(--sub);margin:12px 0 8px;text-align:left}
+  .color-grid{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+  .cswatch{width:40px;height:40px;border-radius:50%;border:2px solid transparent;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+  .cswatch.sel{border-color:var(--blue);box-shadow:0 0 0 2px rgba(0,122,255,.25)}
+  .hex-row{display:flex;gap:8px;margin-top:2px}
+  .hex-row input{flex:1}
+  .hex-row button{flex:none;padding:0 16px;border:none;border-radius:12px;background:#F2F2F7;color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
+  /* ---------- 洪水：隐藏顶栏底栏，让画布铺满全屏 ---------- */
+  #phone.flooding header,#phone.flooding footer{display:none}
+  @media (min-width:431px){
+    body{display:flex;align-items:center;justify-content:center}
+    #phone{height:min(900px,100dvh);border-radius:44px;margin:20px auto}
+  }
+</style>
+</head>
+<body>
+<div id="phone">
+  <header>
+    <div class="header-row">
+      <h1 id="title">小草</h1>
+      <button id="aboutbtn">关于</button>
+    </div>
+    <div id="subtitle">Grass</div>
+  </header>
+
+  <main>
+    <canvas id="scene"></canvas>
+    <div id="install"><span>💡 想把它变成真正的 App？点右上角 <b>分享</b> → <b>添加到主屏幕</b></span><span class="x">✕</span></div>
+  </main>
+
+  <footer>
+    <div id="controlcard">
+      <div class="mid">
+        <div class="statrow"><span class="statlabel">健康</span><span class="statval" id="healthnum">100%</span></div>
+        <div id="healthbar"><div id="healthfill"></div></div>
+        <div class="chiprow">
+          <span class="chip good" id="statuschip">生机勃勃</span>
+          <span id="lastwater">还没有浇过水</span>
+        </div>
+      </div>
+      <div class="side">
+        <div class="kv"><div class="k">陪伴</div><div class="v" id="daysval">1 天</div></div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="splash">
+  <svg class="splash-logo" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <rect width="512" height="512" fill="#FFFFFF"/>
+    <ellipse cx="256" cy="398" rx="150" ry="34" fill="#A6855D"/>
+    <g stroke="#4C9A55" stroke-width="26" stroke-linecap="round" fill="none">
+      <path d="M176 380 C160 300 190 250 160 150"/>
+      <path d="M256 386 C250 300 260 240 258 120"/>
+      <path d="M336 380 C352 300 322 250 352 150"/>
+    </g>
+    <g stroke="#7CC576" stroke-width="12" stroke-linecap="round" fill="none">
+      <path d="M176 380 C150 330 165 290 150 240"/>
+      <path d="M256 386 C240 320 252 285 242 220"/>
+      <path d="M336 380 C362 330 347 290 362 240"/>
+    </g>
+    <circle cx="258" cy="96" r="14" fill="#FFD166"/>
+  </svg>
+  <div id="splash-name">小草</div>
+  <div id="splash-brand">GRASS</div>
+</div>
+
+<div id="editor" class="overlay">
+  <div class="sheet">
+    <h2>给小草起个名字</h2>
+    <input id="nameinput" maxlength="12" placeholder="小草" />
+    <div class="sheet-actions">
+      <button id="namecancel" class="btn-cancel">取消</button>
+      <button id="namesave" class="btn-primary">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="coloroverlay" class="overlay">
+  <div class="sheet">
+    <h2>花盆颜色</h2>
+    <div class="opt-label">预设颜色</div>
+    <div class="color-grid">
+      <button class="cswatch" id="color0" style="background:rgb(248,241,230)"></button>
+      <button class="cswatch" id="color1" style="background:rgb(246,217,224)"></button>
+      <button class="cswatch" id="color2" style="background:rgb(217,232,246)"></button>
+      <button class="cswatch" id="color3" style="background:rgb(220,238,217)"></button>
+      <button class="cswatch" id="color4" style="background:rgb(246,238,211)"></button>
+      <button class="cswatch" id="color5" style="background:rgb(228,228,234)"></button>
+    </div>
+    <div class="opt-label">自定义色号</div>
+    <div class="hex-row">
+      <input id="colorinput" maxlength="7" placeholder="#RRGGBB" />
+      <button id="colorapply">应用</button>
+    </div>
+    <div class="sheet-actions">
+      <button id="colorcancel" class="btn-cancel">取消</button>
+      <button id="colordone" class="btn-primary">完成</button>
+    </div>
+  </div>
+</div>
+
+<div id="aboutoverlay" class="overlay">
+  <div class="sheet">
+    <h2>关于 Grass</h2>
+    <div class="about-row"><span>版本</span><span id="aboutver">2.01</span></div>
+    <div class="about-row"><span>开发者</span><span>Turbo838</span></div>
+    <a class="about-link" href="https://debaoguo.github.io/grass-privacy/" id="privacylink">隐私政策</a>
+    <div class="sheet-actions">
+      <button id="aboutclose" class="btn-primary">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== 热更新引导（支持 OTA 更新应用，无需重装） ===== */
+var GRASS_VERSION = "2.01";
+var GRASS_UPDATE_URL = "https://debaoguo.github.io/grass-privacy/grass/update.json"; // 公网热更新
+function compareVersion(a, b) {
+  var x = String(a).split("."), y = String(b).split(".");
+  for (var i = 0; i < Math.max(x.length, y.length); i++) {
+    var xi = parseInt(x[i] || "0", 10), yi = parseInt(y[i] || "0", 10);
+    if (xi !== yi) return xi > yi ? 1 : -1;
+  }
+  return 0;
+}
+(function () {
+  try {
+    var o = JSON.parse(localStorage.getItem("grass_ota") || "null");
+    if (o && o.html && o.version && compareVersion(o.version, GRASS_VERSION) > 0) {
+      document.open(); document.write(o.html); document.close();
+    }
+  } catch (e) {}
+})();
+
+"use strict";
+(function () {
+
+  /* ================= 常量与持久化 ================= */
+  var SAVE_KEY = "grass-state-v2";
+  var NAME_KEY = "grass-pet-name";
+  var POT_KEY = "grass-pot-color";
+  var GOLD_KEY = "grass-golden";
+  var OTA_KEY = "grass_ota";
+  var MAX_HEALTH = 100;
+  var DECAY_HOURS = 36;
+  var WATERINGS_PER_GROWTH = 30;
+  var MAX_GROWTH = 50;
+  var HEALTH_PER_POUR = 8;
+  var POUR_SECONDS = 0.7;
+  var SWAY_THRESHOLD = 1.3;
+  var STRESS_LIMIT = 60;
+  var MIN_LEAVES = 3;
+  var FLOOD_AT = 50;
+
+  var POT_COLORS = [
+    [248, 241, 230], [246, 217, 224], [217, 232, 246],
+    [220, 238, 217], [246, 238, 211], [228, 228, 234]
+  ];
+
+  var now = function () { return Date.now(); };
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function lerpColor(c1, c2, t) {
+    return "rgb(" + Math.round(c1[0] + (c2[0] - c1[0]) * t) + "," +
+      Math.round(c1[1] + (c2[1] - c1[1]) * t) + "," +
+      Math.round(c1[2] + (c2[2] - c1[2]) * t) + ")";
+  }
+  function shade(c, f) { return "rgb(" + Math.round(c[0] * f) + "," + Math.round(c[1] * f) + "," + Math.round(c[2] * f) + ")"; }
+  function toHex(n) { var s = n.toString(16); return s.length < 2 ? "0" + s : s; }
+  function hexToRgb(hex) {
+    var h = (hex || "").replace(/^#/, "").trim();
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+  }
+
+  var state = { bornAt: now(), health: MAX_HEALTH, waterings: 0, lastWatered: null, lastSeen: now() };
+  var petName = "小草";
+  var potColorIdx = 0, customColor = "";
+  var goldenCan = false;
+
+  function loadState() {
+    var raw = null;
+    try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {}
+    if (raw) {
+      try {
+        var s = JSON.parse(raw);
+        var elapsedH = (now() - (s.lastSeen || now())) / 3600000;
+        var decayed = (s.health == null ? MAX_HEALTH : s.health) - (elapsedH / DECAY_HOURS) * MAX_HEALTH;
+        state.bornAt = s.bornAt || now();
+        state.health = clamp(decayed, 0, MAX_HEALTH);
+        state.waterings = s.waterings || 0;
+        state.lastWatered = s.lastWatered || null;
+        state.lastSeen = now();
+      } catch (e) {}
+    }
+  }
+  function loadName() { try { var n = localStorage.getItem(NAME_KEY); if (n && n.trim()) petName = n.trim(); } catch (e) {} }
+  function loadPotColor() {
+    try {
+      var v = localStorage.getItem(POT_KEY);
+      if (v) {
+        var o = JSON.parse(v);
+        potColorIdx = clamp(parseInt(o.idx, 10) || 0, 0, POT_COLORS.length - 1);
+        customColor = typeof o.custom === "string" ? o.custom : "";
+      }
+    } catch (e) {}
+  }
+  function loadGolden() { try { goldenCan = localStorage.getItem(GOLD_KEY) === "1"; } catch (e) {} }
+  function save() { state.lastSeen = now(); try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
+  function saveName() { try { localStorage.setItem(NAME_KEY, petName); } catch (e) {} }
+  function savePotColor() { try { localStorage.setItem(POT_KEY, JSON.stringify({ idx: potColorIdx, custom: customColor })); } catch (e) {} }
+  function saveGolden() { try { localStorage.setItem(GOLD_KEY, goldenCan ? "1" : "0"); } catch (e) {} }
+
+  loadState(); loadName(); loadPotColor(); loadGolden();
+
+  /* ================= 画布 ================= */
+  var canvas = document.getElementById("scene");
+  var ctx = canvas.getContext("2d");
+  var phoneEl = document.getElementById("phone");
+  var dpr = Math.min(window.devicePixelRatio || 1, 3);
+  var geo = { w: 0, h: 0, cx: 0, potW: 0, potH: 0, potBottom: 0, bodyTop: 0, soilY: 0, maxH: 0 };
+
+  function resize() {
+    var w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    geo.w = w; geo.h = h; geo.cx = w / 2;
+    geo.potW = clamp(w * 0.52, 130, 220);
+    geo.potH = clamp(h * 0.24, 70, 120);
+    geo.potBottom = h - 4;
+    geo.bodyTop = geo.potBottom - geo.potH + geo.potH * 0.14;
+    geo.soilY = geo.bodyTop + 3;
+    geo.maxH = h * 0.5;
+    can.rx = w - CAN_W * 0.75; can.ry = h * 0.20;
+    if (!can.dragging) { can.x = can.rx; can.y = can.ry; }
+    initBlades();
+  }
+  if ("ResizeObserver" in window) {
+    new ResizeObserver(resize).observe(canvas);
+  } else {
+    window.addEventListener("resize", resize);
+    window.addEventListener("orientationchange", resize);
+  }
+
+  /* ================= 小草叶片 ================= */
+  var BLADE_COUNT = 12;
+  var blades = [];
+  var growAnim = 0;
+  var lastLevel = 0;
+  var leafStress = 0;
+  var fallenLeaves = [];
+  function initBlades() {
+    blades = [];
+    for (var i = 0; i < BLADE_COUNT; i++) {
+      var f = i / (BLADE_COUNT - 1);
+      blades.push({
+        nx: f * 2 - 1, hMul: 0.6 + Math.random() * 0.4, wMul: 0.85 + Math.random() * 0.35,
+        ph: Math.random() * Math.PI * 2, stiff: 0.55 + Math.random() * 0.45,
+        lean: (Math.random() - 0.5) * 0.4, sway: 0, vel: 0, fallen: false,
+        baseX: geo.cx + (f * 2 - 1) * geo.potW * 0.34
+      });
+    }
+    lastLevel = growthLevel();
+  }
+  function growthLevel() { return Math.min(MAX_GROWTH, Math.floor(state.waterings / WATERINGS_PER_GROWTH)); }
+  function dryFactor() { return 1 - state.health / MAX_HEALTH; }
+  function bladeHeight(b) {
+    var h = geo.maxH * (0.18 + 0.82 * growAnim) * b.hMul;
+    h *= 0.55 + 0.45 * (state.health / MAX_HEALTH);
+    return h;
+  }
+  function aliveBlades() {
+    var out = [];
+    for (var i = 0; i < blades.length; i++) if (!blades[i].fallen) out.push(blades[i]);
+    return out;
+  }
+  function leafFall() {
+    leafStress = 0;
+    var alive = aliveBlades();
+    if (alive.length <= MIN_LEAVES) return;
+    var victim = alive[0];
+    for (var j = 1; j < alive.length; j++) if (Math.abs(alive[j].sway) > Math.abs(victim.sway)) victim = alive[j];
+    victim.fallen = true;
+    fallenLeaves.push({ x: victim.baseX + (Math.random() - 0.5) * 24, angle: (Math.random() - 0.5) * 0.7, w: bladeHeight(victim) * 0.18 * victim.wMul });
+    if (navigator.vibrate) { try { navigator.vibrate(20); } catch (e) {} }
+  }
+  function regrowLeaves() {
+    for (var i = 0; i < blades.length; i++) blades[i].fallen = false;
+    fallenLeaves = [];
+  }
+
+  /* ================= 洒水壶 / 洪水彩蛋 ================= */
+  var CAN_W = 66, CAN_H = 46, CAN_HIT = 60;
+  var can = { x: 0, y: 0, rx: 0, ry: 0, tilt: 0, dragging: false, pouring: false, pourAccum: 0 };
+  var consecutive = 0, lastWaterTime = 0;
+  var flood = false, floatAnim = 0;
+  function doWatering() {
+    state.waterings += 1;
+    state.health = clamp(state.health + HEALTH_PER_POUR, 0, MAX_HEALTH);
+    state.lastWatered = now();
+    lastWaterTime = now();
+    consecutive += 1;
+    if (consecutive >= FLOOD_AT && !flood) triggerFlood();
+    for (var i = 0; i < 10; i++) spawnDroplet();
+    makeDew();
+    for (var b = 0; b < blades.length; b++) if (!blades[b].fallen) blades[b].vel += (Math.random() - 0.5) * 0.15;
+    if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
+    scheduleSave();
+  }
+  function triggerFlood() {
+    flood = true;
+    goldenCan = true;
+    saveGolden();
+    phoneEl.classList.add("flooding");
+    if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
+  }
+
+  /* ================= 陀螺仪 ================= */
+  var gyroGamma = 0, gyroBeta = 0;
+  function onGyro(e) {
+    if (typeof e.gamma === "number") gyroGamma = e.gamma;
+    if (typeof e.beta === "number") gyroBeta = e.beta;
+  }
+  if (window.DeviceOrientationEvent) {
+    if (typeof window.DeviceOrientationEvent.requestPermission === "function") {
+      var gyroAsked = false;
+      function askGyro() {
+        if (gyroAsked) return; gyroAsked = true;
+        try {
+          window.DeviceOrientationEvent.requestPermission().then(function (s) {
+            if (s === "granted") window.addEventListener("deviceorientation", onGyro);
+          }).catch(function () {});
+        } catch (e) {}
+      }
+      document.addEventListener("pointerdown", askGyro);
+    } else {
+      window.addEventListener("deviceorientation", onGyro);
+    }
+  }
+
+  /* ================= 触摸（单指） ================= */
+  var touch = { active: false, x: 0, y: 0, vx: 0, prevX: 0, prevT: 0 };
+  var activePointer = null;
+  var pressStartX = 0, pressStartY = 0;
+  var potPressTimer = null;
+  function toCanvas(e) { var r = canvas.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+  function overPot(p) {
+    return p.x > geo.cx - geo.potW * 0.55 && p.x < geo.cx + geo.potW * 0.55 && p.y > geo.bodyTop - 15 && p.y < geo.potBottom + 10;
+  }
+  function setTouchPos(e) {
+    var p = toCanvas(e);
+    var t = performance.now();
+    var dt = Math.max(1, t - touch.prevT);
+    var dx = p.x - touch.prevX;
+    var vx = clamp((dx / dt) * 16.667, -60, 60);
+    touch.vx = touch.vx * 0.6 + vx * 0.4;
+    touch.x = p.x; touch.y = p.y;
+    touch.prevX = p.x; touch.prevT = t;
+  }
+  function cancelPotPress() { if (potPressTimer) { clearTimeout(potPressTimer); potPressTimer = null; } }
+  canvas.addEventListener("pointerdown", function (e) {
+    if (activePointer) return;
+    var p = toCanvas(e);
+    var dx = p.x - can.x, dy = p.y - can.y;
+    if (dx * dx + dy * dy < CAN_HIT * CAN_HIT) {
+      activePointer = { id: e.pointerId, mode: "can" };
+      can.dragging = true; can.pourAccum = 0;
+      try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
+    } else if (overPot(p)) {
+      activePointer = { id: e.pointerId, mode: "pot" };
+      pressStartX = p.x; pressStartY = p.y;
+      cancelPotPress();
+      potPressTimer = setTimeout(enterColorMode, 600);
+    } else {
+      activePointer = { id: e.pointerId, mode: "grass" };
+      touch.active = true; touch.vx = 0;
+      touch.prevX = p.x; touch.prevT = performance.now();
+      setTouchPos(e);
+    }
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    if (!activePointer || e.pointerId !== activePointer.id) return;
+    var p = toCanvas(e);
+    if (activePointer.mode === "can") {
+      var vx = p.x - can.x, vy = p.y - can.y;
+      can.x += vx * 0.55; can.y += vy * 0.55;
+      can.tilt += (clamp(vx * 0.045, -0.8, 0.8) - can.tilt) * 0.3;
+    } else if (activePointer.mode === "pot") {
+      if (Math.abs(p.x - pressStartX) > 14 || Math.abs(p.y - pressStartY) > 14) cancelPotPress();
+    } else {
+      setTouchPos(e);
+    }
+  });
+  function releasePointer(e) {
+    if (!activePointer || e.pointerId !== activePointer.id) return;
+    if (activePointer.mode === "pot") cancelPotPress();
+    endInteraction();
+  }
+  function endInteraction() {
+    can.dragging = false; can.pouring = false; can.pourAccum = 0;
+    touch.active = false; touch.vx = 0;
+    activePointer = null;
+  }
+  canvas.addEventListener("pointerup", releasePointer);
+  canvas.addEventListener("pointercancel", releasePointer);
+  canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+
+  /* ================= 粒子 ================= */
+  var droplets = [], splashes = [], dew = null;
+  function spawnDroplet() {
+    var sx = can.x - CAN_W * 0.62, sy = can.y + CAN_H * 0.5;
+    droplets.push({ x: sx + (Math.random() - 0.5) * 6, y: sy + Math.random() * 6, vy: 1.4 + Math.random() * 1.2, r: 1.6 + Math.random() * 1.6, wob: Math.random() * Math.PI * 2 });
+  }
+  function makeDew() {
+    var dots = [];
+    for (var i = 0; i < 3; i++) {
+      var b = blades[Math.floor(Math.random() * blades.length)];
+      dots.push({ blade: b, t: 0.3 + Math.random() * 0.45 });
+    }
+    dew = { until: performance.now() + 5000, dots: dots };
+  }
+
+  /* ================= 主循环 ================= */
+  var lastTs = performance.now();
+  var C_GREEN = { base: [72, 148, 86], mid: [102, 178, 110], tip: [140, 206, 140] };
+  var C_DRY = { base: [180, 150, 88], mid: [198, 168, 104], tip: [214, 186, 122] };
+
+  function frame(ts) {
+    var step = clamp((ts - lastTs) / 16.667, 0.3, 3);
+    lastTs = ts;
+    var dtSec = step / 60;
+
+    state.health = Math.max(0, state.health - (dtSec / (DECAY_HOURS * 3600)) * MAX_HEALTH);
+    var lvl = growthLevel();
+    if (lvl > lastLevel) { lastLevel = lvl; regrowLeaves(); }
+    growAnim += (lvl / MAX_GROWTH - growAnim) * 0.05 * step;
+
+    if (consecutive > 0 && now() - lastWaterTime > 5000) consecutive = 0;
+    floatAnim += ((flood ? 1 : 0) - floatAnim) * 0.03 * step;
+
+    if (!can.dragging) {
+      can.x += (can.rx - can.x) * 0.06 * step;
+      can.y += (can.ry - can.y) * 0.06 * step;
+      can.tilt += (0 - can.tilt) * 0.1 * step;
+    }
+
+    can.pouring = false;
+    if (can.dragging) {
+      var sx = can.x - CAN_W * 0.62, sy = can.y + CAN_H * 0.5;
+      var over = sx > geo.cx - geo.potW * 0.6 && sx < geo.cx + geo.potW * 0.6 && sy > geo.h * 0.12 && sy < geo.soilY;
+      if (over) {
+        can.pouring = true;
+        if (Math.random() < 0.18 * step) spawnDroplet();
+        can.pourAccum += dtSec;
+        if (can.pourAccum >= POUR_SECONDS) { can.pourAccum -= POUR_SECONDS; doWatering(); }
+      }
+    }
+
+    updateBlades(step);
+    if (leafStress >= STRESS_LIMIT) leafFall();
+    updateParticles(step);
+    render();
+    updateUI();
+
+    requestAnimationFrame(frame);
+  }
+
+  function updateBlades(step) {
+    var dry = dryFactor();
+    var t = performance.now();
+    var maxSway = 0;
+    for (var i = 0; i < blades.length; i++) {
+      var b = blades[i];
+      if (b.fallen) continue;
+      var h = bladeHeight(b);
+      var midY = geo.soilY - h * 0.5;
+      var breeze = Math.sin(t * 0.0012 + b.ph) * 0.08 * (1 - dry * 0.55);
+      var target = b.lean + breeze;
+      if (touch.active) {
+        var dx = b.baseX - touch.x;
+        var dy = midY - touch.y;
+        var fall = Math.exp(-(dx * dx + dy * dy) / (220 * 220));
+        target += touch.vx * 0.036 * fall * (1 + dry * 0.6);
+        target += dx * 0.0022 * fall;
+      }
+      target += b.nx * dry * 0.5;
+      var spring = 0.03 * b.stiff * (1 - dry * 0.45);
+      b.vel += (target - b.sway) * spring * step;
+      b.vel *= Math.pow(0.93, step);
+      b.sway += b.vel * step;
+      b.sway = clamp(b.sway, -1.6, 1.6);
+      if (Math.abs(b.sway) > maxSway) maxSway = Math.abs(b.sway);
+    }
+    if (maxSway > SWAY_THRESHOLD) leafStress += step;
+    else leafStress = Math.max(0, leafStress - step * 0.4);
+  }
+
+  function updateParticles(step) {
+    for (var i = droplets.length - 1; i >= 0; i--) {
+      var d = droplets[i];
+      d.vy += 0.09 * step;
+      d.x += Math.sin(performance.now() * 0.004 + d.wob) * 0.3;
+      d.y += d.vy * step;
+      if (d.y >= geo.soilY + 2) {
+        for (var s = 0; s < 3; s++) splashes.push({ x: d.x, y: geo.soilY + 2, vx: (Math.random() - 0.5) * 2.2, vy: -(0.6 + Math.random() * 1.6), life: 1 });
+        droplets.splice(i, 1);
+      }
+    }
+    for (var j = splashes.length - 1; j >= 0; j--) {
+      var sp = splashes[j];
+      sp.x += sp.vx * step; sp.y += sp.vy * step; sp.vy += 0.09 * step; sp.life -= 0.045 * step;
+      if (sp.life <= 0) splashes.splice(j, 1);
+    }
+    if (dew && performance.now() > dew.until) dew = null;
+  }
+
+  /* ================= 渲染 ================= */
+  function currentColor() {
+    if (customColor) { var c = hexToRgb(customColor); if (c) return c; }
+    return POT_COLORS[potColorIdx];
+  }
+  function render() {
+    var dry = dryFactor();
+    ctx.clearRect(0, 0, geo.w, geo.h);
+    var order = aliveBlades().sort(function (a, b) { return a.baseX - b.baseX; });
+    if (flood) {
+      drawFlood();
+      var floatOff = floatAnim * (-(geo.h - geo.potH - 46) + Math.sin(performance.now() * 0.002) * 9);
+      ctx.save();
+      ctx.translate(0, floatOff);
+      ctx.rotate(clamp(gyroGamma, -60, 60) / 60 * 0.06);
+      drawPot();
+      for (var i = 0; i < order.length; i++) drawBlade(order[i], dry);
+      drawFlower();
+      drawFallenLeaves();
+      drawCan();
+      ctx.restore();
+    } else {
+      drawPourTarget();
+      drawPot();
+      for (var i = 0; i < order.length; i++) drawBlade(order[i], dry);
+      drawFlower();
+      drawDew();
+      drawFallenLeaves();
+      for (var j = 0; j < droplets.length; j++) drawDroplet(droplets[j]);
+      for (var k = 0; k < splashes.length; k++) drawSplash(splashes[k]);
+      drawCan();
+    }
+  }
+
+  function drawPourTarget() {
+    if (!can.dragging) return;
+    var a = 0.5 + Math.sin(performance.now() * 0.004) * 0.2;
+    ctx.strokeStyle = "rgba(52,199,89," + a.toFixed(3) + ")";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.ellipse(geo.cx, geo.bodyTop + 4, geo.potW * 0.42, geo.potH * 0.1, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawBlade(b, dry) {
+    var h = bladeHeight(b);
+    if (h < 2) return;
+    var baseX = b.baseX, baseY = geo.soilY;
+    var tipX = baseX + b.sway * h * 0.5;
+    var tipY = baseY - h;
+    var halfW = Math.max(3, h * 0.18 * b.wMul);
+    var ctrlX = baseX + b.sway * h * 0.28;
+    var ctrlY = baseY - h * 0.5;
+    var grad = ctx.createLinearGradient(0, baseY, 0, tipY);
+    grad.addColorStop(0, lerpColor(C_GREEN.base, C_DRY.base, dry));
+    grad.addColorStop(0.55, lerpColor(C_GREEN.mid, C_DRY.mid, dry));
+    grad.addColorStop(1, lerpColor(C_GREEN.tip, C_DRY.tip, dry));
+    ctx.beginPath();
+    ctx.moveTo(baseX, baseY);
+    ctx.quadraticCurveTo(ctrlX - halfW, ctrlY, tipX, tipY);
+    ctx.quadraticCurveTo(ctrlX + halfW, ctrlY, baseX, baseY);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(baseX, baseY);
+    ctx.quadraticCurveTo(ctrlX, ctrlY, tipX, tipY);
+    ctx.strokeStyle = "rgba(255,255,255," + (0.30 + (1 - dry) * 0.15).toFixed(3) + ")";
+    ctx.lineWidth = Math.max(1, h * 0.02);
+    ctx.stroke();
+  }
+
+  function drawPot() {
+    var cx = geo.cx, potW = geo.potW, potH = geo.potH, potBottom = geo.potBottom, bodyTop = geo.bodyTop;
+    var topHalf = potW * 0.5, botHalf = potW * 0.40;
+    var c = currentColor();
+    ctx.fillStyle = "rgba(0,0,0,0.05)";
+    ctx.beginPath();
+    ctx.ellipse(cx, potBottom + 5, potW * 0.5, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - topHalf, bodyTop + 8);
+    ctx.quadraticCurveTo(cx - topHalf, bodyTop, cx - topHalf + 8, bodyTop);
+    ctx.lineTo(cx + topHalf - 8, bodyTop);
+    ctx.quadraticCurveTo(cx + topHalf, bodyTop, cx + topHalf, bodyTop + 8);
+    ctx.lineTo(cx + botHalf, potBottom - 8);
+    ctx.quadraticCurveTo(cx + botHalf, potBottom, cx + botHalf - 8, potBottom);
+    ctx.lineTo(cx - botHalf + 8, potBottom);
+    ctx.quadraticCurveTo(cx - botHalf, potBottom, cx - botHalf, potBottom - 8);
+    ctx.closePath();
+    ctx.fillStyle = "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(0,0,0,0.07)";
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx, bodyTop, topHalf, potH * 0.085, 0, 0, Math.PI * 2);
+    ctx.fillStyle = shade(c, 0.88);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, bodyTop + 2, topHalf * 0.86, potH * 0.07, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#B79A72";
+    ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+    for (var i = 0; i < 7; i++) {
+      var a = (i / 7) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(cx + Math.cos(a) * topHalf * 0.5, bodyTop + 2 + Math.sin(a) * potH * 0.035, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawFallenLeaves() {
+    for (var i = 0; i < fallenLeaves.length; i++) {
+      var f = fallenLeaves[i];
+      ctx.save();
+      ctx.translate(f.x, geo.soilY + 6);
+      ctx.rotate(f.angle);
+      ctx.fillStyle = "rgba(150,160,90,0.9)";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, f.w * 0.6, f.w * 0.28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  function drawCan() {
+    var x = can.x, y = can.y;
+    var isGold = goldenCan;
+    if (state.health < 35 && !can.dragging) {
+      var pr = 40 + Math.sin(performance.now() * 0.004) * 6;
+      ctx.beginPath();
+      ctx.arc(x, y, pr, 0, Math.PI * 2);
+      ctx.strokeStyle = isGold ? "rgba(224,163,0,0.3)" : "rgba(0,122,255,0.25)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(can.tilt);
+    var w = CAN_W, h = CAN_H;
+    var mainC = isGold ? "#E0A300" : "#0A84FF";
+    var topC = isGold ? "#FFE08A" : "#8BD8F8";
+    var accent = isGold ? "#C7930B" : "#0A84FF";
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.beginPath(); ctx.ellipse(2, 6, w * 0.5, h * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+    var bg = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
+    bg.addColorStop(0, topC); bg.addColorStop(1, mainC);
+    ctx.beginPath(); roundRectPath(ctx, -w / 2, -h / 2, w, h, 12); ctx.fillStyle = bg; ctx.fill();
+    ctx.beginPath(); ctx.arc(0, -h * 0.18, w * 0.34, Math.PI * 1.02, Math.PI * 1.98);
+    ctx.strokeStyle = accent; ctx.lineWidth = 6; ctx.lineCap = "round"; ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-w / 2 + 2, -h * 0.16); ctx.lineTo(-w / 2 - 24, h * 0.10); ctx.lineTo(-w / 2 - 18, h * 0.46); ctx.lineTo(-w / 2, h * 0.36);
+    ctx.closePath(); ctx.fillStyle = accent; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(-w / 2 - 21, h * 0.28, 5, 8, 0.5, 0, Math.PI * 2); ctx.fillStyle = accent; ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.7)";
+    for (var d = 0; d < 3; d++) { ctx.beginPath(); ctx.arc(-w / 2 - 21, h * 0.26 + d * 3.4, 1.3, 0, Math.PI * 2); ctx.fill(); }
+    ctx.beginPath(); ctx.ellipse(-w * 0.18, -h * 0.16, w * 0.2, h * 0.16, -0.3, 0, Math.PI * 2); ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fill();
+    ctx.restore();
+  }
+  function roundRectPath(c, x, y, w, h, r) {
+    c.beginPath(); c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
+  function drawFlood() {
+    var g = ctx.createLinearGradient(0, 0, 0, geo.h);
+    g.addColorStop(0, "rgba(72,156,255,0.90)");
+    g.addColorStop(0.5, "rgba(30,110,220,0.93)");
+    g.addColorStop(1, "rgba(10,60,160,0.96)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, geo.w, geo.h);
+  }
+
+  function drawFlower() {
+    if (growthLevel() < 40 || state.health < 65) return;
+    var b = blades[Math.floor(blades.length * 0.6)];
+    if (b.fallen) return;
+    var h = bladeHeight(b);
+    var tipX = b.baseX + b.sway * h * 0.5;
+    var tipY = geo.soilY - h;
+    var r = Math.max(4, h * 0.06);
+    ctx.save();
+    ctx.translate(tipX, tipY);
+    ctx.rotate(b.sway * 0.4);
+    ctx.fillStyle = "rgba(0,0,0,0.08)";
+    ctx.beginPath(); ctx.ellipse(0, r * 0.55, r * 1.1, r * 0.8, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#FFE3EC";
+    for (var i = 0; i < 5; i++) {
+      var a = (i / 5) * Math.PI * 2;
+      ctx.beginPath(); ctx.arc(Math.cos(a) * r, Math.sin(a) * r, r * 0.85, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = "#FFC94D";
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.75, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function drawDew() {
+    if (!dew) return;
+    var k = 1 - (dew.until - performance.now()) / 5000;
+    var alpha = k < 0.85 ? 1 : (1 - k) / 0.15;
+    ctx.fillStyle = "rgba(140,200,255," + (0.75 * alpha).toFixed(3) + ")";
+    for (var i = 0; i < dew.dots.length; i++) {
+      var d = dew.dots[i];
+      var b = d.blade;
+      var h = bladeHeight(b);
+      var x = b.baseX + b.sway * h * 0.5 * d.t;
+      var y = geo.soilY - h * d.t;
+      ctx.beginPath(); ctx.ellipse(x, y, 2.2, 1.6, 0.4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  function drawDroplet(d) {
+    ctx.fillStyle = "rgba(90,190,255,0.85)";
+    ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    ctx.beginPath(); ctx.arc(d.x - d.r * 0.3, d.y - d.r * 0.3, d.r * 0.35, 0, Math.PI * 2); ctx.fill();
+  }
+  function drawSplash(sp) {
+    ctx.fillStyle = "rgba(90,190,255," + (sp.life * 0.7).toFixed(3) + ")";
+    ctx.beginPath(); ctx.arc(sp.x, sp.y, 1.4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  /* ================= UI ================= */
+  var el = {
+    healthfill: document.getElementById("healthfill"),
+    healthnum: document.getElementById("healthnum"),
+    statuschip: document.getElementById("statuschip"),
+    lastwater: document.getElementById("lastwater"),
+    daysval: document.getElementById("daysval")
+  };
+  function statusOf(health) {
+    var r = health / MAX_HEALTH;
+    if (r >= 0.9) return { text: "生机勃勃", cls: "good" };
+    if (r >= 0.6) return { text: "状态良好", cls: "good" };
+    if (r >= 0.35) return { text: "有点渴了", cls: "warn" };
+    if (r >= 0.12) return { text: "干枯发黄", cls: "bad" };
+    return { text: "快救救它", cls: "bad" };
+  }
+  function fmtAgo(ts) {
+    if (!ts) return "还没有浇过水";
+    var m = Math.floor((now() - ts) / 60000);
+    if (m < 1) return "刚刚浇过水";
+    if (m < 60) return m + " 分钟前浇水";
+    var hh = Math.floor(m / 60);
+    if (hh < 24) return hh + " 小时前浇水";
+    return Math.floor(hh / 24) + " 天前浇水";
+  }
+  var uiLast = { hp: -1, tag: "", water: "", days: -1 };
+  function updateUI() {
+    var hp = Math.round(state.health);
+    var st = statusOf(state.health);
+    var wl = fmtAgo(state.lastWatered);
+    var days = Math.floor((now() - state.bornAt) / 86400000) + 1;
+    if (uiLast.hp !== hp) {
+      uiLast.hp = hp;
+      el.healthnum.textContent = hp + "%";
+      el.healthfill.style.width = hp + "%";
+      var dry = dryFactor();
+      el.healthfill.style.background = "linear-gradient(90deg," +
+        lerpColor([76, 175, 80], [232, 120, 52], dry) + "," +
+        lerpColor([139, 195, 74], [198, 160, 84], dry) + ")";
+    }
+    if (uiLast.tag !== st.text) { uiLast.tag = st.text; el.statuschip.textContent = st.text; el.statuschip.className = "chip " + st.cls; }
+    if (uiLast.water !== wl) { uiLast.water = wl; el.lastwater.textContent = wl; }
+    if (uiLast.days !== days) { uiLast.days = days; el.daysval.textContent = days + " 天"; }
+  }
+
+  /* ================= 启动画面 ================= */
+  var splash = document.getElementById("splash");
+  var splashName = document.getElementById("splash-name");
+  var titleEl = document.getElementById("title");
+  function applyName() { splashName.textContent = petName; titleEl.textContent = petName; }
+  applyName();
+  setTimeout(function () { splash.classList.add("hide"); }, 1600);
+  splash.addEventListener("pointerdown", function () { splash.classList.add("hide"); });
+
+  /* ================= 改名（双击大字） ================= */
+  var editor = document.getElementById("editor");
+  var nameInput = document.getElementById("nameinput");
+  var lastTap = 0;
+  titleEl.addEventListener("click", function () {
+    var t = now();
+    if (t - lastTap < 380) {
+      lastTap = 0;
+      nameInput.value = petName;
+      editor.classList.add("show");
+      try { nameInput.focus(); } catch (e) {}
+    } else { lastTap = t; }
+  });
+  document.getElementById("namesave").addEventListener("click", function () {
+    var v = nameInput.value.replace(/^\s+|\s+$/g, "");
+    if (v) petName = v.slice(0, 12);
+    saveName(); applyName(); editor.classList.remove("show");
+  });
+  document.getElementById("namecancel").addEventListener("click", function () { editor.classList.remove("show"); });
+
+  /* ================= 花盆颜色（长按花盆） ================= */
+  var colorOverlay = document.getElementById("coloroverlay");
+  var colorInput = document.getElementById("colorinput");
+  var savedColorIdx = 0, savedCustom = "";
+  var colorBtns = [];
+  for (var ci = 0; ci < POT_COLORS.length; ci++) {
+    (function (idx) {
+      var b = document.getElementById("color" + idx);
+      b.addEventListener("click", function () { potColorIdx = idx; customColor = ""; refreshPicker(); });
+      colorBtns.push(b);
+    })(ci);
+  }
+  function refreshPicker() {
+    for (var i = 0; i < colorBtns.length; i++) {
+      if (!customColor && i === potColorIdx) colorBtns[i].classList.add("sel");
+      else colorBtns[i].classList.remove("sel");
+    }
+    var c = currentColor();
+    colorInput.value = "#" + toHex(c[0]) + toHex(c[1]) + toHex(c[2]);
+  }
+  document.getElementById("colorapply").addEventListener("click", function () {
+    var c = hexToRgb(colorInput.value);
+    if (c) { customColor = "#" + colorInput.value.replace(/^#/, "").toUpperCase(); refreshPicker(); }
+    else { refreshPicker(); }
+  });
+  function enterColorMode() { potPressTimer = null; activePointer = null; showColorMode(); }
+  function showColorMode() {
+    savedColorIdx = potColorIdx; savedCustom = customColor;
+    refreshPicker();
+    colorOverlay.classList.add("show");
+  }
+  document.getElementById("colordone").addEventListener("click", function () {
+    savePotColor();
+    colorOverlay.classList.remove("show");
+  });
+  document.getElementById("colorcancel").addEventListener("click", function () {
+    potColorIdx = savedColorIdx; customColor = savedCustom;
+    colorOverlay.classList.remove("show");
+  });
+
+  /* ================= 关于 / 隐私政策 ================= */
+  var aboutOverlay = document.getElementById("aboutoverlay");
+  var aboutBtn = document.getElementById("aboutbtn");
+  document.getElementById("aboutver").textContent = GRASS_VERSION;
+  aboutBtn.addEventListener("click", function () { aboutOverlay.classList.add("show"); });
+  document.getElementById("aboutclose").addEventListener("click", function () { aboutOverlay.classList.remove("show"); });
+
+  /* ================= 热更新 ================= */
+  function applyOTA(html) {
+    if (!html) return;
+    try { document.open(); document.write(html); document.close(); } catch (e) {}
+  }
+  function checkUpdate() {
+    if (!GRASS_UPDATE_URL) return;
+    try {
+      fetch(GRASS_UPDATE_URL, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (m) {
+        if (m && m.version && m.url && compareVersion(String(m.version), GRASS_VERSION) > 0) {
+          return fetch(m.url, { cache: "no-store" }).then(function (r2) { return r2.text(); }).then(function (html) {
+            try { localStorage.setItem(OTA_KEY, JSON.stringify({ version: m.version, html: html })); } catch (e) {}
+            applyOTA(html);
+          });
+        }
+      }).catch(function () {});
+    } catch (e) {}
+  }
+  setTimeout(checkUpdate, 2500);
+
+  /* ================= 生命周期 ================= */
+  var saveTimer = null;
+  function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(save, 600); }
+  setInterval(save, 5000);
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) {
+      save();
+    } else {
+      var elapsedH = (now() - state.lastSeen) / 3600000;
+      state.health = clamp(state.health - (elapsedH / DECAY_HOURS) * MAX_HEALTH, 0, MAX_HEALTH);
+      state.lastSeen = now();
+    }
+  });
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+
+  var isStandalone = (window.navigator.standalone === true) || window.matchMedia("(display-mode: standalone)").matches;
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  var installBanner = document.getElementById("install");
+  var installDismissed = false;
+  try { installDismissed = localStorage.getItem("grass-install-dismissed") === "1"; } catch (e) {}
+  if (isIOS && !isStandalone && !installDismissed) installBanner.classList.add("show");
+  installBanner.querySelector(".x").addEventListener("click", function () {
+    installBanner.classList.remove("show");
+    try { localStorage.setItem("grass-install-dismissed", "1"); } catch (e) {}
+  });
+
+  /* ================= 启动 ================= */
+  resize();
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
