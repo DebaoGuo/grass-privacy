@@ -49,7 +49,7 @@
   h1{font-size:34px;font-weight:800;letter-spacing:-.6px;line-height:1.1;display:inline-block;cursor:pointer;color:#111113}
   #subtitle{color:var(--sub);font-size:15px;margin-top:3px;letter-spacing:.2px}
   .header-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-  #aboutbtn{border:none;background:none;color:var(--blue);font-size:15px;font-weight:600;cursor:pointer;padding:6px 2px;flex:none}
+  #aboutbtn{border:none;background:none;color:var(--sub);font-size:15px;font-weight:500;cursor:pointer;padding:6px 2px;flex:none}
   .about-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f0f0f2;font-size:15px}
   .about-row span:first-child{color:var(--sub)}
   .about-link{display:block;text-align:center;color:var(--blue);font-size:15px;font-weight:600;padding:14px 0;text-decoration:none}
@@ -117,6 +117,17 @@
   #splash-name{font-size:30px;font-weight:800;margin-top:20px;letter-spacing:-.3px;animation:fadeUp .6s .1s both}
   #splash-brand{font-size:13px;color:var(--sub);margin-top:6px;letter-spacing:3px;animation:fadeUp .6s .2s both}
   @keyframes fadeUp{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+  /* ---------- 隐私政策同意弹窗 ---------- */
+  .privacy-overlay{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.5);padding:28px}
+  .privacy-overlay.show{display:flex}
+  .privacy-card{background:#fff;border-radius:16px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:rise .3s ease}
+  .privacy-card-title{font-size:19px;font-weight:700;text-align:center;margin-bottom:14px}
+  .privacy-card-text{font-size:14px;line-height:1.75;color:#2c2c2e;margin-bottom:20px}
+  .privacy-card-text a{color:var(--blue);text-decoration:none}
+  .privacy-card-btns{display:flex;gap:12px}
+  .privacy-card-btns button{flex:1;padding:12px;border-radius:12px;font-size:16px;font-weight:600;border:none;cursor:pointer}
+  .privacy-deny{background:#F2F2F7;color:var(--ink)}
+  .privacy-agree{background:var(--blue);color:#fff}
   /* ---------- 弹层 ---------- */
   .overlay{position:fixed;inset:0;z-index:90;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.35);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
   .overlay.show{display:flex}
@@ -192,6 +203,23 @@
   </svg>
   <div id="splash-name">小草</div>
   <div id="splash-brand">GRASS</div>
+</div>
+
+<!-- 隐私政策同意弹窗 -->
+<div id="privacyoverlay" class="privacy-overlay">
+  <div class="privacy-card">
+    <div class="privacy-card-title">欢迎使用 Grass</div>
+    <div class="privacy-card-text">
+      我们非常重视你的个人信息和隐私。在使用前，请你仔细阅读并同意
+      <a href="https://debaoguo.github.io/grass-privacy/user-agreement.html">《用户协议》</a> 和
+      <a href="https://debaoguo.github.io/grass-privacy/">《隐私政策》</a>。
+      如你同意，请点击"同意"开始使用。
+    </div>
+    <div class="privacy-card-btns">
+      <button id="privacy-deny" class="privacy-deny">不同意</button>
+      <button id="privacy-agree" class="privacy-agree">同意</button>
+    </div>
+  </div>
 </div>
 
 <div id="editor" class="overlay">
@@ -455,26 +483,28 @@ function effectiveVersion() {
     if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
   }
 
-  /* ================= 陀螺仪 ================= */
+  /* ================= 陀螺仪（仅在用户同意隐私政策后才启用） ================= */
   var gyroGamma = 0, gyroBeta = 0;
   function onGyro(e) {
     if (typeof e.gamma === "number") gyroGamma = e.gamma;
     if (typeof e.beta === "number") gyroBeta = e.beta;
   }
-  if (window.DeviceOrientationEvent) {
-    if (typeof window.DeviceOrientationEvent.requestPermission === "function") {
-      var gyroAsked = false;
-      function askGyro() {
-        if (gyroAsked) return; gyroAsked = true;
-        try {
-          window.DeviceOrientationEvent.requestPermission().then(function (s) {
-            if (s === "granted") window.addEventListener("deviceorientation", onGyro);
-          }).catch(function () {});
-        } catch (e) {}
+  function setupGyro() {
+    if (window.DeviceOrientationEvent) {
+      if (typeof window.DeviceOrientationEvent.requestPermission === "function") {
+        var gyroAsked = false;
+        function askGyro() {
+          if (gyroAsked) return; gyroAsked = true;
+          try {
+            window.DeviceOrientationEvent.requestPermission().then(function (s) {
+              if (s === "granted") window.addEventListener("deviceorientation", onGyro);
+            }).catch(function () {});
+          } catch (e) {}
+        }
+        document.addEventListener("pointerdown", askGyro);
+      } else {
+        window.addEventListener("deviceorientation", onGyro);
       }
-      document.addEventListener("pointerdown", askGyro);
-    } else {
-      window.addEventListener("deviceorientation", onGyro);
     }
   }
 
@@ -935,6 +965,26 @@ function effectiveVersion() {
   applyName();
   setTimeout(function () { splash.classList.add("hide"); }, 1600);
   splash.addEventListener("pointerdown", function () { splash.classList.add("hide"); });
+
+  /* ================= 隐私政策同意（首次启动，同意后才启用陀螺仪） ================= */
+  var privacyOverlay = document.getElementById("privacyoverlay");
+  var privacyAgreed = false;
+  try { privacyAgreed = localStorage.getItem("grass-privacy-agreed") === "1"; } catch (e) {}
+  if (privacyAgreed) {
+    setupGyro();
+  } else {
+    privacyOverlay.classList.add("show");
+  }
+  document.getElementById("privacy-agree").addEventListener("click", function () {
+    try { localStorage.setItem("grass-privacy-agreed", "1"); } catch (e) {}
+    privacyOverlay.classList.remove("show");
+    setupGyro();
+  });
+  document.getElementById("privacy-deny").addEventListener("click", function () {
+    if (window.AndroidBridge && window.AndroidBridge.exitApp) {
+      try { window.AndroidBridge.exitApp(); } catch (e) {}
+    }
+  });
 
   /* ================= 改名（双击大字） ================= */
   var editor = document.getElementById("editor");
