@@ -450,6 +450,7 @@ function effectiveVersion() {
     for (var j = 1; j < alive.length; j++) if (Math.abs(alive[j].sway) > Math.abs(victim.sway)) victim = alive[j];
     victim.fallen = true;
     fallenLeaves.push({ x: victim.baseX + (Math.random() - 0.5) * 24, angle: (Math.random() - 0.5) * 0.7, w: bladeHeight(victim) * 0.18 * victim.wMul });
+    playSound("plop");
     if (navigator.vibrate) { try { navigator.vibrate(20); } catch (e) {} }
   }
   function regrowLeaves() {
@@ -471,6 +472,7 @@ function effectiveVersion() {
     if (consecutive >= FLOOD_AT && !flood) triggerFlood();
     for (var i = 0; i < 10; i++) spawnDroplet();
     makeDew();
+    playSound("water");
     for (var b = 0; b < blades.length; b++) if (!blades[b].fallen) blades[b].vel += (Math.random() - 0.5) * 0.15;
     if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
     scheduleSave();
@@ -480,6 +482,7 @@ function effectiveVersion() {
     goldenCan = true;
     saveGolden();
     phoneEl.classList.add("flooding");
+    playSound("flood");
     if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
   }
 
@@ -507,6 +510,96 @@ function effectiveVersion() {
       }
     }
   }
+
+  /* ================= 音效（Web Audio 实时合成，无需音频文件） ================= */
+  var audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audioCtx = null; return; }
+    }
+    if (audioCtx.state === "suspended") {
+      try { audioCtx.resume(); } catch (e) {}
+    }
+  }
+  var audioInitDone = false;
+  document.addEventListener("pointerdown", function () {
+    if (audioInitDone) return;
+    audioInitDone = true;
+    ensureAudio();
+  });
+  function makeNoiseBuffer(dur) {
+    if (!audioCtx) return null;
+    var len = Math.max(1, Math.floor(audioCtx.sampleRate * dur));
+    var buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    var d = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return buf;
+  }
+  function playSound(type) {
+    if (!audioCtx) return;
+    var t = audioCtx.currentTime;
+    var src, filt, gain, osc, nb;
+    if (type === "water") {
+      nb = makeNoiseBuffer(0.45);
+      src = audioCtx.createBufferSource(); src.buffer = nb;
+      filt = audioCtx.createBiquadFilter(); filt.type = "bandpass"; filt.frequency.value = 1100; filt.Q.value = 0.7;
+      gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.22, t + 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t); src.stop(t + 0.5);
+    } else if (type === "rustle") {
+      nb = makeNoiseBuffer(0.16);
+      src = audioCtx.createBufferSource(); src.buffer = nb;
+      filt = audioCtx.createBiquadFilter(); filt.type = "highpass"; filt.frequency.value = 2200;
+      gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.12, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t); src.stop(t + 0.2);
+    } else if (type === "plop") {
+      osc = audioCtx.createOscillator(); osc.type = "sine";
+      osc.frequency.setValueAtTime(320, t);
+      osc.frequency.exponentialRampToValueAtTime(90, t + 0.12);
+      gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.16);
+    } else if (type === "tap") {
+      osc = audioCtx.createOscillator(); osc.type = "triangle";
+      osc.frequency.value = 1300;
+      gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(t); osc.stop(t + 0.06);
+    } else if (type === "flood") {
+      nb = makeNoiseBuffer(1.6);
+      src = audioCtx.createBufferSource(); src.buffer = nb;
+      filt = audioCtx.createBiquadFilter(); filt.type = "lowpass";
+      filt.frequency.setValueAtTime(900, t);
+      filt.frequency.exponentialRampToValueAtTime(300, t + 1.5);
+      gain = audioCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.4, t + 0.2);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+      src.connect(filt); filt.connect(gain); gain.connect(audioCtx.destination);
+      src.start(t); src.stop(t + 1.7);
+    }
+  }
+  // 点击任何按钮播放"嗒"声
+  document.addEventListener("click", function (e) {
+    var el = e.target;
+    while (el) {
+      if (el.tagName && String(el.tagName).toLowerCase() === "button") { playSound("tap"); return; }
+      el = el.parentNode || null;
+    }
+  });
 
   /* ================= 触摸（单指） ================= */
   var touch = { active: false, x: 0, y: 0, vx: 0, prevX: 0, prevT: 0 };
@@ -546,6 +639,7 @@ function effectiveVersion() {
       touch.active = true; touch.vx = 0;
       touch.prevX = p.x; touch.prevT = performance.now();
       setTouchPos(e);
+      playSound("rustle");
     }
   });
   canvas.addEventListener("pointermove", function (e) {
